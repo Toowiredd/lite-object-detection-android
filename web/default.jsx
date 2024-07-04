@@ -1,5 +1,5 @@
 import { Outlet, Link } from "react-router-dom";
-import { navItems } from "@/App";
+import { navItems } from "@/web/App";
 
 const Layout = () => {
   return (

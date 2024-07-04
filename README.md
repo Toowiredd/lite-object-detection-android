@@ -1,38 +1,15 @@
-# lite-object-detection-android
+# Project Overview
 
-https://www.tensorflow.org/lite/android/tutorials/object_detection
+This project is organized into the following directories:
 
-## Collaborate with GPT Engineer
+- `models/`: Contains the model training scripts and related files.
+- `web/`: Contains the TensorFlow.js React integration files.
+- `requirements/`: Contains the requirements documentation for the project.
 
-This is a [gptengineer.app](https://gptengineer.app)-synced repository 🌟🤖
+## Instructions
 
-Changes made via gptengineer.app will be committed to this repo.
+1. **Model Training**: The model training scripts are located in the `models/` directory. You can find the detection worker script there.
+2. **Web Application**: The web application files are located in the `web/` directory. This includes the main application components, styles, and utility functions.
+3. **Requirements**: The requirements documentation is located in the `requirements/` directory.
 
-If you clone this repo and push changes, you will have them reflected in the GPT Engineer UI.
-
-## Tech stack
-
-This project is built with React with shadcn-ui and Tailwind CSS.
-
-- Vite
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## Setup
-
-```sh
-git clone https://github.com/GPT-Engineer-App/lite-object-detection-android.git
-cd lite-object-detection-android
-npm i
-```
-
-```sh
-npm run dev
-```
-
-This will run a dev server with auto reloading and an instant preview.
-
-## Requirements
-
-- Node.js & npm - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+To get started with the web application, navigate to the `web/` directory and follow the instructions in the README file there.
