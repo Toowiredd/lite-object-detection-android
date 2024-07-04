@@ -5,12 +5,18 @@ import { Home } from "lucide-react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import Layout from "@/layouts/default"; // available: default, navbar, sidebar
 import Index from "@/pages/Index";
+import { Results } from "@/pages/Results";
 const queryClient = new QueryClient();
 
 export const navItems = [
   {
-    title: "Home", // Feel free to change this to your liking
+    title: "Home",
     to: "/",
+    icon: <Home className="h-4 w-4" />,
+  },
+  {
+    title: "Results",
+    to: "/results",
     icon: <Home className="h-4 w-4" />,
   },
 ];
@@ -24,7 +30,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<Index />} />
-              {/* Add more routes here as needed */}
+              <Route path="results" element={<Results />} />
             </Route>
           </Routes>
         </Router>
