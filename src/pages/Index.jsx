@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 const Index = () => {
   const [image, setImage] = useState(null);
   const [detections, setDetections] = useState([]);
+  const [manualTags, setManualTags] = useState([]);
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const [model, setModel] = useState(null);
@@ -100,6 +101,20 @@ const Index = () => {
     detect();
   };
 
+  const handleManualTag = (tag) => {
+    setManualTags([...manualTags, tag]);
+  };
+
+  const countObjects = (objectClass) => {
+    const autoCount = detections.filter(d => d.class === objectClass).length;
+    const manualCount = manualTags.filter(tag => tag === objectClass).length;
+    return autoCount + manualCount;
+  };
+
+  const countGlassBottles = () => {
+    return countObjects('bottle');
+  };
+
   React.useEffect(() => {
     loadModel();
   }, []);
@@ -128,6 +143,23 @@ const Index = () => {
                   </li>
                 ))}
               </ul>
+              <Separator />
+              <h2 className="text-xl">Manual Tags:</h2>
+              <ul>
+                {manualTags.map((tag, index) => (
+                  <li key={index}>{tag}</li>
+                ))}
+              </ul>
+              <Separator />
+              <h2 className="text-xl">Object Counts:</h2>
+              <p>Glass Bottles: {countGlassBottles()}</p>
+              <p>Total Objects: {detections.length + manualTags.length}</p>
+            </div>
+            <Separator />
+            <div className="w-full">
+              <h2 className="text-xl">Manual Tagging:</h2>
+              <Button onClick={() => handleManualTag('bottle')}>Tag Glass Bottle</Button>
+              <Button onClick={() => handleManualTag('custom-object')}>Tag Custom Object</Button>
             </div>
           </div>
         </CardContent>
