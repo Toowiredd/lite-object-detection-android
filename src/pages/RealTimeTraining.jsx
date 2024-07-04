@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
 
 const RealTimeTraining = () => {
   const canvasRef = useRef(null);
@@ -14,9 +15,25 @@ const RealTimeTraining = () => {
   const detectedObjects = useRef(new Set());
   const [objectCounts, setObjectCounts] = useState({ bottle: 0, can: 0, cardboard: 0, 'glass bottle': 0 });
 
+  const [petBottleImage, setPetBottleImage] = useState(null);
+  const [hdpeBottleImage, setHdpeBottleImage] = useState(null);
+  const [aluminiumCanImage, setAluminiumCanImage] = useState(null);
+  const [cardboardCartonImage, setCardboardCartonImage] = useState(null);
+
   const loadModel = async () => {
     const loadedModel = await cocoSsd.load({ backend: 'webgl' });
     setModel(loadedModel);
+  };
+
+  const handleFileUpload = (event, setImage) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const detectWebcamFeed = () => {
@@ -113,6 +130,27 @@ const RealTimeTraining = () => {
             <Separator />
             <canvas ref={canvasRef} className="border" />
             <video ref={videoRef} className="hidden" />
+            <div className="mt-4">
+              <h2 className="text-2xl">Upload Sample Photos</h2>
+              <div className="space-y-2">
+                <div>
+                  <label htmlFor="petBottle">PET Bottle:</label>
+                  <Input type="file" id="petBottle" onChange={(e) => handleFileUpload(e, setPetBottleImage)} />
+                </div>
+                <div>
+                  <label htmlFor="hdpeBottle">HDPE Bottle:</label>
+                  <Input type="file" id="hdpeBottle" onChange={(e) => handleFileUpload(e, setHdpeBottleImage)} />
+                </div>
+                <div>
+                  <label htmlFor="aluminiumCan">Aluminium Can:</label>
+                  <Input type="file" id="aluminiumCan" onChange={(e) => handleFileUpload(e, setAluminiumCanImage)} />
+                </div>
+                <div>
+                  <label htmlFor="cardboardCarton">Cardboard Carton:</label>
+                  <Input type="file" id="cardboardCarton" onChange={(e) => handleFileUpload(e, setCardboardCartonImage)} />
+                </div>
+              </div>
+            </div>
             <div className="mt-4">
               <h2 className="text-2xl">Detected Objects</h2>
               <ul>
