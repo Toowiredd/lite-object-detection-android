@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as cocoSsd from '@tensorflow-models/coco-ssd';
 import '@tensorflow/tfjs';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 const Index = () => {
-  const [image, setImage] = useState(null);
-  const [detections, setDetections] = useState([]);
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const [model, setModel] = useState(null);
@@ -17,66 +15,6 @@ const Index = () => {
   const loadModel = async () => {
     const loadedModel = await cocoSsd.load({ backend: 'webgl' });
     setModel(loadedModel);
-  };
-
-  const handleImageUpload = (event) => {
-    const file = event.target.files[0];
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImage(reader.result);
-      detectObjects(reader.result);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const detectObjects = async (imageSrc) => {
-    const img = new Image();
-    img.src = imageSrc;
-    img.onload = async () => {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-
-      const predictions = await model.detect(img, { maxNumBoxes: 10, minScore: 0.5 });
-      const filteredPredictions = predictions.filter(prediction => 
-        ['bottle', 'can', 'cardboard', 'glass bottle'].includes(prediction.class)
-      );
-      setDetections(filteredPredictions);
-
-      filteredPredictions.forEach((prediction) => {
-        const [x, y, width, height] = prediction.bbox;
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, width, height);
-        ctx.fillStyle = 'red';
-        ctx.fillText(
-          `${prediction.class} (${Math.round(prediction.score * 100)}%)`,
-          x,
-          y > 10 ? y - 5 : 10
-        );
-
-        if (isInRoi(x, y, width, height) && !detectedObjects.current.has(prediction.bbox.toString())) {
-          detectedObjects.current.add(prediction.bbox.toString());
-        }
-      });
-
-      drawRoi(ctx);
-    };
-  };
-
-  const startWebcam = () => {
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
-      .then((stream) => {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        detectWebcamFeed();
-      })
-      .catch((err) => {
-        console.error('Error accessing webcam: ', err);
-      });
   };
 
   const detectWebcamFeed = () => {
@@ -94,7 +32,6 @@ const Index = () => {
         const filteredPredictions = predictions.filter(prediction => 
           ['bottle', 'can', 'cardboard', 'glass bottle'].includes(prediction.class)
         );
-        setDetections(filteredPredictions);
 
         filteredPredictions.forEach((prediction) => {
           const [x, y, width, height] = prediction.bbox;
@@ -118,6 +55,19 @@ const Index = () => {
       requestAnimationFrame(detect);
     };
     detect();
+  };
+
+  const startWebcam = () => {
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((stream) => {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        detectWebcamFeed();
+      })
+      .catch((err) => {
+        console.error('Error accessing webcam: ', err);
+      });
   };
 
   const isInRoi = (x, y, width, height) => {
@@ -144,11 +94,10 @@ const Index = () => {
       <Card>
         <CardHeader>
           <CardTitle className="text-3xl">TensorFlow.js Object Detection</CardTitle>
-          <p className="text-lg">Upload an image or use your webcam to detect objects.</p>
+          <p className="text-lg">Use your webcam to detect objects.</p>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center space-y-4">
-            <input type="file" accept="image/*" onChange={handleImageUpload} />
             <Button onClick={startWebcam}>Start Webcam</Button>
             <Separator />
             <canvas ref={canvasRef} className="border" />
