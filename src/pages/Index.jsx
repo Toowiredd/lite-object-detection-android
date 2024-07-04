@@ -12,7 +12,7 @@ const Index = () => {
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const [model, setModel] = useState(null);
-  const [roi, setRoi] = useState({ x: 50, y: 50, width: 200, height: 200 });
+  const [roi, setRoi] = useState({ x: 0, y: 0, width: window.innerWidth / 2, height: window.innerHeight });
   const [tally, setTally] = useState({ PET1: 0, HDPE2: 0, cardboard: 0, aluminum: 0 });
 
   const loadModel = async () => {
