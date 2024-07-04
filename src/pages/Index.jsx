@@ -4,6 +4,7 @@ import '@tensorflow/tfjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
 
 const Index = () => {
   const canvasRef = useRef(null);
@@ -11,6 +12,7 @@ const Index = () => {
   const [model, setModel] = useState(null);
   const [roi, setRoi] = useState({ x: 0, y: 0, width: window.innerWidth / 2, height: window.innerHeight });
   const detectedObjects = useRef(new Set());
+  const [objectCounts, setObjectCounts] = useState({ bottle: 0, can: 0, cardboard: 0, 'glass bottle': 0 });
 
   const loadModel = async () => {
     const loadedModel = await cocoSsd.load({ backend: 'webgl' });
@@ -47,6 +49,8 @@ const Index = () => {
 
           if (isInRoi(x, y, width, height) && !detectedObjects.current.has(prediction.bbox.toString())) {
             detectedObjects.current.add(prediction.bbox.toString());
+            updateObjectCounts(prediction.class);
+            toast.success(`Detected ${prediction.class}`);
           }
         });
 
@@ -85,6 +89,13 @@ const Index = () => {
     ctx.strokeRect(roi.x, roi.y, roi.width, roi.height);
   };
 
+  const updateObjectCounts = (objectClass) => {
+    setObjectCounts(prevCounts => ({
+      ...prevCounts,
+      [objectClass]: prevCounts[objectClass] + 1
+    }));
+  };
+
   useEffect(() => {
     loadModel();
   }, []);
@@ -102,6 +113,14 @@ const Index = () => {
             <Separator />
             <canvas ref={canvasRef} className="border" />
             <video ref={videoRef} className="hidden" />
+            <div className="mt-4">
+              <h2 className="text-2xl">Detected Objects</h2>
+              <ul>
+                {Object.entries(objectCounts).map(([objectClass, count]) => (
+                  <li key={objectClass}>{objectClass}: {count}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         </CardContent>
       </Card>
