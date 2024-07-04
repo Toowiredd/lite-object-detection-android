@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const RealTimeTraining = () => {
   const canvasRef = useRef(null);
@@ -14,6 +17,14 @@ const RealTimeTraining = () => {
   const [roi, setRoi] = useState({ x: 0, y: 0, width: window.innerWidth / 2, height: window.innerHeight });
   const detectedObjects = useRef(new Set());
   const [objectCounts, setObjectCounts] = useState({ bottle: 0, can: 0, cardboard: 0, 'glass bottle': 0 });
+  const [settings, setSettings] = useState({
+    scoreThreshold: 0.5,
+    maxResults: 5,
+    showBoundingBox: true,
+    showLabels: true,
+    showScores: true,
+    highlightDetections: true,
+  });
 
   const [petBottleImage, setPetBottleImage] = useState(null);
   const [hdpeBottleImage, setHdpeBottleImage] = useState(null);
@@ -47,22 +58,34 @@ const RealTimeTraining = () => {
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const predictions = await model.detect(video, { maxNumBoxes: 10, minScore: 0.5 });
+        const predictions = await model.detect(video, { maxNumBoxes: settings.maxResults, minScore: settings.scoreThreshold });
         const filteredPredictions = predictions.filter(prediction => 
           ['bottle', 'can', 'cardboard', 'glass bottle'].includes(prediction.class)
         );
 
         filteredPredictions.forEach((prediction) => {
           const [x, y, width, height] = prediction.bbox;
-          ctx.strokeStyle = 'red';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(x, y, width, height);
-          ctx.fillStyle = 'red';
-          ctx.fillText(
-            `${prediction.class} (${Math.round(prediction.score * 100)}%)`,
-            x,
-            y > 10 ? y - 5 : 10
-          );
+          if (settings.showBoundingBox) {
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+          }
+          if (settings.highlightDetections) {
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+            ctx.fillRect(x, y, width, height);
+          }
+          if (settings.showLabels || settings.showScores) {
+            ctx.fillStyle = 'red';
+            ctx.font = '16px Arial';
+            let label = '';
+            if (settings.showLabels) {
+              label += prediction.class;
+            }
+            if (settings.showScores) {
+              label += ` (${(prediction.score * 100).toFixed(2)}%)`;
+            }
+            ctx.fillText(label, x, y > 20 ? y - 5 : y + 20);
+          }
 
           if (isInRoi(x, y, width, height) && !detectedObjects.current.has(prediction.bbox.toString())) {
             detectedObjects.current.add(prediction.bbox.toString());
@@ -158,6 +181,57 @@ const RealTimeTraining = () => {
                   <li key={objectClass}>{objectClass}: {count}</li>
                 ))}
               </ul>
+            </div>
+            <div className="settings-panel">
+              <h3>Settings</h3>
+              <div className="setting">
+                <Label>Score Threshold</Label>
+                <Slider
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={[settings.scoreThreshold]}
+                  onValueChange={([value]) => setSettings(prev => ({ ...prev, scoreThreshold: value }))}
+                />
+              </div>
+              <div className="setting">
+                <Label>Max Results</Label>
+                <Slider
+                  min={1}
+                  max={20}
+                  step={1}
+                  value={[settings.maxResults]}
+                  onValueChange={([value]) => setSettings(prev => ({ ...prev, maxResults: value }))}
+                />
+              </div>
+              <div className="setting">
+                <Label>Show Bounding Box</Label>
+                <Switch
+                  checked={settings.showBoundingBox}
+                  onCheckedChange={value => setSettings(prev => ({ ...prev, showBoundingBox: value }))}
+                />
+              </div>
+              <div className="setting">
+                <Label>Show Labels</Label>
+                <Switch
+                  checked={settings.showLabels}
+                  onCheckedChange={value => setSettings(prev => ({ ...prev, showLabels: value }))}
+                />
+              </div>
+              <div className="setting">
+                <Label>Show Scores</Label>
+                <Switch
+                  checked={settings.showScores}
+                  onCheckedChange={value => setSettings(prev => ({ ...prev, showScores: value }))}
+                />
+              </div>
+              <div className="setting">
+                <Label>Highlight Detections</Label>
+                <Switch
+                  checked={settings.highlightDetections}
+                  onCheckedChange={value => setSettings(prev => ({ ...prev, highlightDetections: value }))}
+                />
+              </div>
             </div>
           </div>
         </CardContent>

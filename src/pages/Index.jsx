@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const Index = () => {
   const canvasRef = useRef(null);
@@ -14,12 +17,20 @@ const Index = () => {
   const [roi, setRoi] = useState({ x: 0, y: 0, width: window.innerWidth / 2, height: window.innerHeight });
   const detectedObjects = useRef(new Set());
   const [objectCounts, setObjectCounts] = useState({ bottle: 0, can: 0, cardboard: 0, 'glass bottle': 0 });
+  const [settings, setSettings] = useState({
+    scoreThreshold: 0.5,
+    maxResults: 5,
+    showBoundingBox: true,
+    showLabels: true,
+    showScores: true,
+    highlightDetections: true,
+  });
 
   const loadModel = async () => {
     const objectron = new Objectron({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/objectron/${file}`});
     objectron.setOptions({
       model: 'Shoe',
-      maxNumObjects: 5,
+      maxNumObjects: settings.maxResults,
     });
     objectron.onResults(onResults);
     setObjectron(objectron);
@@ -107,6 +118,57 @@ const Index = () => {
                   <li key={objectClass}>{objectClass}: {count}</li>
                 ))}
               </ul>
+            </div>
+            <div className="settings-panel">
+              <h3>Settings</h3>
+              <div className="setting">
+                <Label>Score Threshold</Label>
+                <Slider
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={[settings.scoreThreshold]}
+                  onValueChange={([value]) => setSettings(prev => ({ ...prev, scoreThreshold: value }))}
+                />
+              </div>
+              <div className="setting">
+                <Label>Max Results</Label>
+                <Slider
+                  min={1}
+                  max={20}
+                  step={1}
+                  value={[settings.maxResults]}
+                  onValueChange={([value]) => setSettings(prev => ({ ...prev, maxResults: value }))}
+                />
+              </div>
+              <div className="setting">
+                <Label>Show Bounding Box</Label>
+                <Switch
+                  checked={settings.showBoundingBox}
+                  onCheckedChange={value => setSettings(prev => ({ ...prev, showBoundingBox: value }))}
+                />
+              </div>
+              <div className="setting">
+                <Label>Show Labels</Label>
+                <Switch
+                  checked={settings.showLabels}
+                  onCheckedChange={value => setSettings(prev => ({ ...prev, showLabels: value }))}
+                />
+              </div>
+              <div className="setting">
+                <Label>Show Scores</Label>
+                <Switch
+                  checked={settings.showScores}
+                  onCheckedChange={value => setSettings(prev => ({ ...prev, showScores: value }))}
+                />
+              </div>
+              <div className="setting">
+                <Label>Highlight Detections</Label>
+                <Switch
+                  checked={settings.highlightDetections}
+                  onCheckedChange={value => setSettings(prev => ({ ...prev, highlightDetections: value }))}
+                />
+              </div>
             </div>
           </div>
         </CardContent>
