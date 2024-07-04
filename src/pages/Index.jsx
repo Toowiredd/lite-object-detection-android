@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as cocoSsd from '@tensorflow-models/coco-ssd';
 import '@tensorflow/tfjs';
+import { detectGLCapabilities, fromTexture, renderToGLView, toTexture } from '@tensorflow/tfjs-react-native';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -16,7 +17,11 @@ const Index = () => {
   const [tally, setTally] = useState({ PET1: 0, HDPE2: 0, cardboard: 0, aluminum: 0 });
 
   const loadModel = async () => {
-    const loadedModel = await cocoSsd.load();
+    const loadedModel = await cocoSsd.load({
+      backend: 'webgl',
+      maxNumBoxes: 10,
+      minScore: 0.5,
+    });
     setModel(loadedModel);
   };
 
@@ -40,7 +45,13 @@ const Index = () => {
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
 
-      const predictions = await model.detect(img);
+      const gl = canvas.getContext('webgl2');
+      detectGLCapabilities(gl);
+
+      const texture = await toTexture(gl, img);
+      const resizedTensor = await fromTexture(gl, texture, { width: img.width, height: img.height, depth: 3 }, { width: 300, height: 300, depth: 3 });
+
+      const predictions = await model.detect(resizedTensor);
       const filteredPredictions = predictions.filter(prediction => 
         ['bottle', 'can', 'cardboard', 'glass bottle'].includes(prediction.class)
       );
@@ -91,7 +102,13 @@ const Index = () => {
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const predictions = await model.detect(video);
+        const gl = canvas.getContext('webgl2');
+        detectGLCapabilities(gl);
+
+        const texture = await toTexture(gl, video);
+        const resizedTensor = await fromTexture(gl, texture, { width: video.videoWidth, height: video.videoHeight, depth: 3 }, { width: 300, height: 300, depth: 3 });
+
+        const predictions = await model.detect(resizedTensor);
         const filteredPredictions = predictions.filter(prediction => 
           ['bottle', 'can', 'cardboard', 'glass bottle'].includes(prediction.class)
         );
@@ -123,10 +140,10 @@ const Index = () => {
 
   const isInRoi = (x, y, width, height) => {
     return (
-      x < roi.x + roi.width &&
       x + width > roi.x &&
       y < roi.y + roi.height &&
-      y + height > roi.y
+      y + height > roi.y &&
+      x > canvasRef.current.width / 2
     );
   };
 
@@ -138,6 +155,7 @@ const Index = () => {
     } else if (objectClass === 'can') {
       setTally((prevTally) => ({ ...prevTally, aluminum: prevTally.aluminum + 1 }));
     }
+    setDetections((prevDetections) => prevDetections.filter(d => d.class !== objectClass));
   };
 
   const drawRoi = (ctx) => {
