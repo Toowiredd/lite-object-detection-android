@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import RoiSelector from '@/components/RoiSelector';
 
 const Index = () => {
   const canvasRef = useRef(null);
@@ -13,6 +14,7 @@ const Index = () => {
   const [roi, setRoi] = useState({ x: 0, y: 0, width: window.innerWidth / 2, height: window.innerHeight });
   const detectedObjects = useRef(new Set());
   const [objectCounts, setObjectCounts] = useState({ bottle: 0, can: 0, cardboard: 0, 'glass bottle': 0 });
+  const workerRef = useRef(null);
 
   const loadModel = async () => {
     const loadedModel = await cocoSsd.load({ backend: 'webgl' });
@@ -30,29 +32,8 @@ const Index = () => {
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const predictions = await model.detect(video, { maxNumBoxes: 10, minScore: 0.5 });
-        const filteredPredictions = predictions.filter(prediction => 
-          ['bottle', 'can', 'cardboard', 'glass bottle'].includes(prediction.class)
-        );
-
-        filteredPredictions.forEach((prediction) => {
-          const [x, y, width, height] = prediction.bbox;
-          ctx.strokeStyle = 'red';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(x, y, width, height);
-          ctx.fillStyle = 'red';
-          ctx.fillText(
-            `${prediction.class} (${Math.round(prediction.score * 100)}%)`,
-            x,
-            y > 10 ? y - 5 : 10
-          );
-
-          if (isInRoi(x, y, width, height) && !detectedObjects.current.has(prediction.bbox.toString())) {
-            detectedObjects.current.add(prediction.bbox.toString());
-            updateObjectCounts(prediction.class);
-            toast.success(`Detected ${prediction.class}`);
-          }
-        });
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        workerRef.current.postMessage({ type: 'processFrame', imageData });
 
         drawRoi(ctx);
       }
@@ -74,30 +55,30 @@ const Index = () => {
       });
   };
 
-  const isInRoi = (x, y, width, height) => {
-    return (
-      x < roi.x + roi.width &&
-      x + width > roi.x &&
-      y < roi.y + roi.height &&
-      y + height > roi.y
-    );
-  };
-
   const drawRoi = (ctx) => {
     ctx.strokeStyle = 'blue';
     ctx.lineWidth = 2;
     ctx.strokeRect(roi.x, roi.y, roi.width, roi.height);
   };
 
-  const updateObjectCounts = (objectClass) => {
-    setObjectCounts(prevCounts => ({
-      ...prevCounts,
-      [objectClass]: prevCounts[objectClass] + 1
-    }));
+  const handleRoiChange = (newRoi) => {
+    setRoi(newRoi);
+    workerRef.current.postMessage({ type: 'setRoi', roi: newRoi });
   };
 
   useEffect(() => {
-    loadModel();
+    workerRef.current = new Worker(new URL('@/workers/offscreenDetectionWorker.js', import.meta.url));
+    workerRef.current.postMessage({ type: 'loadModel' });
+
+    workerRef.current.onmessage = (e) => {
+      if (e.data.type === 'updateCounts') {
+        setObjectCounts(e.data.objectCounts);
+      }
+    };
+
+    return () => {
+      workerRef.current.terminate();
+    };
   }, []);
 
   return (
@@ -111,6 +92,7 @@ const Index = () => {
           <div className="flex flex-col items-center space-y-4">
             <Button onClick={startWebcam}>Start Webcam</Button>
             <Separator />
+            <RoiSelector onRoiChange={handleRoiChange} />
             <canvas ref={canvasRef} className="border" />
             <video ref={videoRef} className="hidden" />
             <div className="mt-4">
