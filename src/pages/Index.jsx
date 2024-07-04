@@ -8,12 +8,10 @@ import { Separator } from '@/components/ui/separator';
 const Index = () => {
   const [image, setImage] = useState(null);
   const [detections, setDetections] = useState([]);
-  const [manualTags, setManualTags] = useState([]);
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const [model, setModel] = useState(null);
   const [roi, setRoi] = useState({ x: 0, y: 0, width: window.innerWidth / 2, height: window.innerHeight });
-  const [tally, setTally] = useState({ PET1: 0, HDPE2: 0, cardboard: 0, aluminum: 0 });
   const detectedObjects = useRef(new Set());
 
   const loadModel = async () => {
@@ -60,7 +58,6 @@ const Index = () => {
         );
 
         if (isInRoi(x, y, width, height) && !detectedObjects.current.has(prediction.bbox.toString())) {
-          incrementTally(prediction.class);
           detectedObjects.current.add(prediction.bbox.toString());
         }
       });
@@ -112,7 +109,6 @@ const Index = () => {
           );
 
           if (isInRoi(x, y, width, height) && !detectedObjects.current.has(prediction.bbox.toString())) {
-            incrementTally(prediction.class);
             detectedObjects.current.add(prediction.bbox.toString());
           }
         });
@@ -133,34 +129,10 @@ const Index = () => {
     );
   };
 
-  const incrementTally = (objectClass) => {
-    if (objectClass === 'bottle') {
-      setTally((prevTally) => ({ ...prevTally, PET1: prevTally.PET1 + 1 }));
-    } else if (objectClass === 'cardboard') {
-      setTally((prevTally) => ({ ...prevTally, cardboard: prevTally.cardboard + 1 }));
-    } else if (objectClass === 'can') {
-      setTally((prevTally) => ({ ...prevTally, aluminum: prevTally.aluminum + 1 }));
-    }
-  };
-
   const drawRoi = (ctx) => {
     ctx.strokeStyle = 'blue';
     ctx.lineWidth = 2;
     ctx.strokeRect(roi.x, roi.y, roi.width, roi.height);
-  };
-
-  const handleManualTag = (tag) => {
-    setManualTags([...manualTags, tag]);
-  };
-
-  const countObjects = (objectClass) => {
-    const autoCount = detections.filter(d => d.class === objectClass).length;
-    const manualCount = manualTags.filter(tag => tag === objectClass).length;
-    return autoCount + manualCount;
-  };
-
-  const countGlassBottles = () => {
-    return countObjects('bottle');
   };
 
   useEffect(() => {
@@ -181,38 +153,6 @@ const Index = () => {
             <Separator />
             <canvas ref={canvasRef} className="border" />
             <video ref={videoRef} className="hidden" />
-            <Separator />
-            <div className="w-full">
-              <h2 className="text-xl">Detection Results:</h2>
-              <ul>
-                {detections.map((detection, index) => (
-                  <li key={index}>
-                    {detection.class} - {Math.round(detection.score * 100)}%
-                  </li>
-                ))}
-              </ul>
-              <Separator />
-              <h2 className="text-xl">Manual Tags:</h2>
-              <ul>
-                {manualTags.map((tag, index) => (
-                  <li key={index}>{tag}</li>
-                ))}
-              </ul>
-              <Separator />
-              <h2 className="text-xl">Object Counts:</h2>
-              <p>Glass Bottles: {countGlassBottles()}</p>
-              <p>Total Objects: {detections.length + manualTags.length}</p>
-              <p>PET 1 Plastic Bottles: {tally.PET1}</p>
-              <p>HDPE 2 Plastic Bottles: {tally.HDPE2}</p>
-              <p>Cardboard Cartons: {tally.cardboard}</p>
-              <p>Aluminum Cans: {tally.aluminum}</p>
-            </div>
-            <Separator />
-            <div className="w-full">
-              <h2 className="text-xl">Manual Tagging:</h2>
-              <Button onClick={() => handleManualTag('bottle')}>Tag Glass Bottle</Button>
-              <Button onClick={() => handleManualTag('custom-object')}>Tag Custom Object</Button>
-            </div>
           </div>
         </CardContent>
       </Card>
