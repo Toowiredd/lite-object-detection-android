@@ -41,9 +41,12 @@ const Index = () => {
       ctx.drawImage(img, 0, 0);
 
       const predictions = await model.detect(img);
-      setDetections(predictions);
+      const filteredPredictions = predictions.filter(prediction => 
+        ['bottle', 'can', 'cardboard', 'glass bottle'].includes(prediction.class)
+      );
+      setDetections(filteredPredictions);
 
-      predictions.forEach((prediction) => {
+      filteredPredictions.forEach((prediction) => {
         const [x, y, width, height] = prediction.bbox;
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 2;
@@ -89,9 +92,12 @@ const Index = () => {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         const predictions = await model.detect(video);
-        setDetections(predictions);
+        const filteredPredictions = predictions.filter(prediction => 
+          ['bottle', 'can', 'cardboard', 'glass bottle'].includes(prediction.class)
+        );
+        setDetections(filteredPredictions);
 
-        predictions.forEach((prediction) => {
+        filteredPredictions.forEach((prediction) => {
           const [x, y, width, height] = prediction.bbox;
           ctx.strokeStyle = 'red';
           ctx.lineWidth = 2;
