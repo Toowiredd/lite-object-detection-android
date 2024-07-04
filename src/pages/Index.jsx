@@ -14,9 +14,10 @@ const Index = () => {
   const [model, setModel] = useState(null);
   const [roi, setRoi] = useState({ x: 0, y: 0, width: window.innerWidth / 2, height: window.innerHeight });
   const [tally, setTally] = useState({ PET1: 0, HDPE2: 0, cardboard: 0, aluminum: 0 });
+  const detectedObjects = useRef(new Set());
 
   const loadModel = async () => {
-    const loadedModel = await cocoSsd.load();
+    const loadedModel = await cocoSsd.load({ backend: 'webgl' });
     setModel(loadedModel);
   };
 
@@ -40,7 +41,7 @@ const Index = () => {
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
 
-      const predictions = await model.detect(img);
+      const predictions = await model.detect(img, { maxNumBoxes: 10, minScore: 0.5 });
       const filteredPredictions = predictions.filter(prediction => 
         ['bottle', 'can', 'cardboard', 'glass bottle'].includes(prediction.class)
       );
@@ -58,8 +59,9 @@ const Index = () => {
           y > 10 ? y - 5 : 10
         );
 
-        if (isInRoi(x, y, width, height)) {
+        if (isInRoi(x, y, width, height) && !detectedObjects.current.has(prediction.bbox.toString())) {
           incrementTally(prediction.class);
+          detectedObjects.current.add(prediction.bbox.toString());
         }
       });
 
@@ -91,7 +93,7 @@ const Index = () => {
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const predictions = await model.detect(video);
+        const predictions = await model.detect(video, { maxNumBoxes: 10, minScore: 0.5 });
         const filteredPredictions = predictions.filter(prediction => 
           ['bottle', 'can', 'cardboard', 'glass bottle'].includes(prediction.class)
         );
@@ -109,8 +111,9 @@ const Index = () => {
             y > 10 ? y - 5 : 10
           );
 
-          if (isInRoi(x, y, width, height)) {
+          if (isInRoi(x, y, width, height) && !detectedObjects.current.has(prediction.bbox.toString())) {
             incrementTally(prediction.class);
+            detectedObjects.current.add(prediction.bbox.toString());
           }
         });
 
