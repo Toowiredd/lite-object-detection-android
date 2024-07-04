@@ -67,7 +67,7 @@ const Index = () => {
   };
 
   useEffect(() => {
-    workerRef.current = new Worker(new URL('@/workers/offscreenDetectionWorker.js', import.meta.url), { type: 'module' });
+    workerRef.current = new Worker(new URL('../workers/offscreenDetectionWorker.js', import.meta.url), { type: 'module' });
     workerRef.current.postMessage({ type: 'loadModel' });
 
     workerRef.current.onmessage = (e) => {
