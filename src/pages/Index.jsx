@@ -4,6 +4,8 @@ import '@tensorflow/tfjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 
 const Index = () => {
   const [image, setImage] = useState(null);
@@ -15,6 +17,8 @@ const Index = () => {
   const [roi, setRoi] = useState({ x: 0, y: 0, width: window.innerWidth / 2, height: window.innerHeight });
   const [tally, setTally] = useState({ PET1: 0, HDPE2: 0, cardboard: 0, aluminum: 0 });
   const detectedObjects = useRef(new Set());
+  const [swapRoiDirection, setSwapRoiDirection] = useState(false);
+  const [manualVerification, setManualVerification] = useState(false);
 
   const loadModel = async () => {
     const loadedModel = await cocoSsd.load({ backend: 'webgl' });
@@ -163,6 +167,14 @@ const Index = () => {
     return countObjects('bottle');
   };
 
+  const handleSwapRoiDirection = () => {
+    setSwapRoiDirection(!swapRoiDirection);
+    setRoi((prevRoi) => ({
+      ...prevRoi,
+      x: window.innerWidth - prevRoi.x - prevRoi.width,
+    }));
+  };
+
   useEffect(() => {
     loadModel();
   }, []);
@@ -175,45 +187,62 @@ const Index = () => {
           <p className="text-lg">Upload an image or use your webcam to detect objects.</p>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center space-y-4">
-            <input type="file" accept="image/*" onChange={handleImageUpload} />
-            <Button onClick={startWebcam}>Start Webcam</Button>
-            <Separator />
-            <canvas ref={canvasRef} className="border" />
-            <video ref={videoRef} className="hidden" />
-            <Separator />
-            <div className="w-full">
-              <h2 className="text-xl">Detection Results:</h2>
-              <ul>
-                {detections.map((detection, index) => (
-                  <li key={index}>
-                    {detection.class} - {Math.round(detection.score * 100)}%
-                  </li>
-                ))}
-              </ul>
-              <Separator />
-              <h2 className="text-xl">Manual Tags:</h2>
-              <ul>
-                {manualTags.map((tag, index) => (
-                  <li key={index}>{tag}</li>
-                ))}
-              </ul>
-              <Separator />
-              <h2 className="text-xl">Object Counts:</h2>
-              <p>Glass Bottles: {countGlassBottles()}</p>
-              <p>Total Objects: {detections.length + manualTags.length}</p>
-              <p>PET 1 Plastic Bottles: {tally.PET1}</p>
-              <p>HDPE 2 Plastic Bottles: {tally.HDPE2}</p>
-              <p>Cardboard Cartons: {tally.cardboard}</p>
-              <p>Aluminum Cans: {tally.aluminum}</p>
-            </div>
-            <Separator />
-            <div className="w-full">
-              <h2 className="text-xl">Manual Tagging:</h2>
-              <Button onClick={() => handleManualTag('bottle')}>Tag Glass Bottle</Button>
-              <Button onClick={() => handleManualTag('custom-object')}>Tag Custom Object</Button>
-            </div>
-          </div>
+          <Tabs defaultValue="detection">
+            <TabsList>
+              <TabsTrigger value="detection">Detection</TabsTrigger>
+              <TabsTrigger value="count">Count</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </TabsList>
+            <TabsContent value="detection">
+              <div className="flex flex-col items-center space-y-4">
+                <input type="file" accept="image/*" onChange={handleImageUpload} />
+                <Button onClick={startWebcam}>Start Webcam</Button>
+                <Separator />
+                <canvas ref={canvasRef} className="border" />
+                <video ref={videoRef} className="hidden" />
+              </div>
+            </TabsContent>
+            <TabsContent value="count">
+              <div className="w-full">
+                <h2 className="text-xl">Detection Results:</h2>
+                <ul>
+                  {detections.map((detection, index) => (
+                    <li key={index}>
+                      {detection.class} - {Math.round(detection.score * 100)}%
+                    </li>
+                  ))}
+                </ul>
+                <Separator />
+                <h2 className="text-xl">Manual Tags:</h2>
+                <ul>
+                  {manualTags.map((tag, index) => (
+                    <li key={index}>{tag}</li>
+                  ))}
+                </ul>
+                <Separator />
+                <h2 className="text-xl">Object Counts:</h2>
+                <p>Glass Bottles: {countGlassBottles()}</p>
+                <p>Total Objects: {detections.length + manualTags.length}</p>
+                <p>PET 1 Plastic Bottles: {tally.PET1}</p>
+                <p>HDPE 2 Plastic Bottles: {tally.HDPE2}</p>
+                <p>Cardboard Cartons: {tally.cardboard}</p>
+                <p>Aluminum Cans: {tally.aluminum}</p>
+              </div>
+            </TabsContent>
+            <TabsContent value="settings">
+              <div className="w-full">
+                <h2 className="text-xl">Settings:</h2>
+                <div className="flex items-center space-x-2">
+                  <label htmlFor="swap-roi-direction">Swap ROI Direction</label>
+                  <Switch id="swap-roi-direction" checked={swapRoiDirection} onCheckedChange={handleSwapRoiDirection} />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <label htmlFor="manual-verification">Manual Verification</label>
+                  <Switch id="manual-verification" checked={manualVerification} onCheckedChange={setManualVerification} />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
