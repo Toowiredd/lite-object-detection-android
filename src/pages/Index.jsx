@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import * as cocoSsd from '@tensorflow-models/coco-ssd';
 import '@tensorflow/tfjs';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ const Index = () => {
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const [model, setModel] = useState(null);
+  const [roi, setRoi] = useState({ x: 50, y: 50, width: 200, height: 200 });
+  const [tally, setTally] = useState({ PET1: 0, HDPE2: 0, cardboard: 0, aluminum: 0 });
 
   const loadModel = async () => {
     const loadedModel = await cocoSsd.load();
@@ -52,7 +54,13 @@ const Index = () => {
           x,
           y > 10 ? y - 5 : 10
         );
+
+        if (isInRoi(x, y, width, height)) {
+          incrementTally(prediction.class);
+        }
       });
+
+      drawRoi(ctx);
     };
   };
 
@@ -94,11 +102,42 @@ const Index = () => {
             x,
             y > 10 ? y - 5 : 10
           );
+
+          if (isInRoi(x, y, width, height)) {
+            incrementTally(prediction.class);
+          }
         });
+
+        drawRoi(ctx);
       }
       requestAnimationFrame(detect);
     };
     detect();
+  };
+
+  const isInRoi = (x, y, width, height) => {
+    return (
+      x < roi.x + roi.width &&
+      x + width > roi.x &&
+      y < roi.y + roi.height &&
+      y + height > roi.y
+    );
+  };
+
+  const incrementTally = (objectClass) => {
+    if (objectClass === 'bottle') {
+      setTally((prevTally) => ({ ...prevTally, PET1: prevTally.PET1 + 1 }));
+    } else if (objectClass === 'cardboard') {
+      setTally((prevTally) => ({ ...prevTally, cardboard: prevTally.cardboard + 1 }));
+    } else if (objectClass === 'can') {
+      setTally((prevTally) => ({ ...prevTally, aluminum: prevTally.aluminum + 1 }));
+    }
+  };
+
+  const drawRoi = (ctx) => {
+    ctx.strokeStyle = 'blue';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(roi.x, roi.y, roi.width, roi.height);
   };
 
   const handleManualTag = (tag) => {
@@ -115,7 +154,7 @@ const Index = () => {
     return countObjects('bottle');
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadModel();
   }, []);
 
@@ -154,6 +193,10 @@ const Index = () => {
               <h2 className="text-xl">Object Counts:</h2>
               <p>Glass Bottles: {countGlassBottles()}</p>
               <p>Total Objects: {detections.length + manualTags.length}</p>
+              <p>PET 1 Plastic Bottles: {tally.PET1}</p>
+              <p>HDPE 2 Plastic Bottles: {tally.HDPE2}</p>
+              <p>Cardboard Cartons: {tally.cardboard}</p>
+              <p>Aluminum Cans: {tally.aluminum}</p>
             </div>
             <Separator />
             <div className="w-full">
